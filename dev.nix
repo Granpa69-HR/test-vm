@@ -1,396 +1,422 @@
-#!/bin/bash
-set -euo pipefail
+# dev.nix - Development environment for VM Manager
+# Sponsor: Grandpa Academy
+# Developer: MD HR
 
-# =============================
-# Enhanced Multi-VM Manager
-# =============================
+{
+  pkgs ? import <nixpkgs> {},
+  lib ? pkgs.lib
+}:
 
-# Function to display main header
-display_header() {
-    clear
-    echo ""
-    echo "================================================================================"
-    echo "                     VIRTUAL MACHINE MANAGER v3.0"
-    echo "================================================================================"
-    echo ""
-    echo "    ████████╗██╗    ██╗    ███╗   ███╗ █████╗ ███╗   ██╗ █████╗  ██████╗ ███████╗"
-    echo "    ╚══██╔══╝██║    ██║    ████╗ ████║██╔══██╗████╗  ██║██╔══██╗██╔════╝ ██╔════╝"
-    echo "       ██║   ██║ █╗ ██║    ██╔████╔██║███████║██╔██╗ ██║███████║██║  ███╗█████╗  "
-    echo "       ██║   ██║███╗██║    ██║╚██╔╝██║██╔══██║██║╚██╗██║██╔══██║██║   ██║██╔══╝  "
-    echo "       ██║   ╚███╔███╔╝    ██║ ╚═╝ ██║██║  ██║██║ ╚████║██║  ██║╚██████╔╝███████╗"
-    echo "       ╚═╝    ╚══╝╚══╝     ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝"
-    echo ""
-    echo "================================================================================"
-    echo " Sponsor: Grandpa Academy   |   Developer: MD HR   |   Version: 3.0"
-    echo "================================================================================"
-    echo ""
-}
+let
+  # Helper function to check if running in NixOS
+  isNixOS = pkgs.stdenv.isLinux && builtins.pathExists /etc/NIXOS;
 
-# Function to display OS selection menu
-display_os_menu() {
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════╗"
-    echo "║                    SELECT OPERATING SYSTEM                       ║"
-    echo "╠══════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                  ║"
-    
-    local i=1
-    for os in "${!OS_OPTIONS[@]}"; do
-        printf "║   %2d. %-30s %-10s ║\n" "$i" "$os" "($(echo ${OS_OPTIONS[$os]} | cut -d'|' -f1))"
-        ((i++))
-    done
-    
-    echo "║                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════╝"
-    echo ""
-}
+  # Custom package set for VM management
+  vmManagerPackages = with pkgs; [
+    # Core virtualization packages
+    qemu_kvm
+    qemu_full
+    qemu-utils
+    qemu-guest-agent
+    qemu_xen
+    qemu_test
+    swtpm
+    libvirt
+    virt-manager
+    virt-viewer
 
-# Function to display OS creation banner
-display_os_creation_banner() {
-    local os_type=$1
-    local os_name=$2
-    
-    echo ""
-    echo "================================================================================"
-    case "$os_type" in
-        "ubuntu")
-            echo "CREATING: UBUNTU VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: 🐧 Ubuntu Linux"
-            ;;
-        "debian")
-            echo "CREATING: DEBIAN VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: 🦊 Debian GNU/Linux"
-            ;;
-        "fedora")
-            echo "CREATING: FEDORA VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: ∞ Fedora Linux"
-            ;;
-        "centos")
-            echo "CREATING: CENTOS VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: 🎩 CentOS Stream"
-            ;;
-        "almalinux")
-            echo "CREATING: ALMALINUX VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: 🌳 AlmaLinux"
-            ;;
-        "rockylinux")
-            echo "CREATING: ROCKY LINUX VIRTUAL MACHINE"
-            echo "Version: $os_name"
-            echo "Icon: 🏔️ Rocky Linux"
-            ;;
-        *)
-            echo "CREATING: CLOUD VIRTUAL MACHINE"
-            echo "Type: $os_type"
-            echo "Version: $os_name"
-            ;;
-    esac
-    echo "================================================================================"
-    echo ""
-}
+    # Cloud image utilities
+    cloud-utils
+    cloud-init
+    cdrkit
+    genisoimage
+    mtools
 
-# Function to display VM creation progress
-display_vm_progress() {
-    local step=$1
-    local vm_name=$2
-    
+    # System utilities
+    wget
+    curl
+    git
+    unzip
+    p7zip
+    gnutar
+    gzip
+    pigz
+    pbzip2
+    lz4
+    zstd
+
+    # Networking tools
+    openssh
+    sshfs
+    nmap
+    netcat-openbsd
+    iperf3
+    iputils
+    net-tools
+    bridge-utils
+    dnsutils
+    wget2
+
+    # Monitoring and performance tools
+    htop
+    btop
+    iotop
+    iftop
+    nethogs
+    glances
+    sysstat
+    lm_sensors
+    smartmontools
+    dmidecode
+
+    # Disk and storage tools
+    parted
+    gparted
+    dosfstools
+    ntfs3g
+    exfat
+    f2fs-tools
+    xfsprogs
+    btrfs-progs
+    lvm2
+    mdadm
+
+    # Development tools
+    gcc
+    gdb
+    valgrind
+    strace
+    ltrace
+    perf-tools
+    binutils
+    file
+    which
+    pv
+    progress
+    moreutils
+
+    # Text editors and viewers
+    vim
+    nano
+    micro
+    less
+    jq
+    yq
+    bat
+    exa
+    fzf
+    ripgrep
+    fd
+    sd
+    hexyl
+
+    # Python tools (for potential extensions)
+    python3
+    python3Packages.pip
+    python3Packages.virtualenv
+
+    # Shell utilities
+    bash
+    zsh
+    fish
+    tmux
+    screen
+    direnv
+    shellcheck
+    shfmt
+
+    # Security tools
+    gnupg
+    openssl
+    age
+    sops
+    sshpass
+    expect
+    pwgen
+
+    # GUI tools (optional, for VM display)
+    x11vnc
+    tigervnc
+    tightvnc
+    spice-protocol
+    spice-gtk
+    virt-viewer
+
+    # Container tools (for comparison/testing)
+    docker
+    podman
+    buildah
+    skopeo
+    runc
+    crun
+  ];
+
+  # Service configuration for NixOS
+  nixosServiceConfig = {
+    # Enable KVM kernel module
+    boot.kernelModules = [ "kvm-intel" "kvm-amd" ];
+
+    # Add user to required groups
+    users.users.${builtins.getEnv "USER"} = {
+      extraGroups = [ "kvm" "libvirtd" "qemu-libvirtd" "docker" "podman" ];
+    };
+
+    # Enable virtualization services
+    virtualisation = {
+      # QEMU/KVM
+      qemu = {
+        enable = true;
+        runAsRoot = false;
+        package = pkgs.qemu_kvm;
+      };
+
+      # Libvirt
+      libvirtd = {
+        enable = true;
+        qemu = {
+          package = pkgs.qemu_kvm;
+          runAsRoot = true;
+          swtpm.enable = true;
+        };
+      };
+
+      # Docker
+      docker = {
+        enable = true;
+        autoPrune.enable = true;
+        daemon.settings = {
+          experimental = true;
+        };
+      };
+
+      # Podman
+      podman = {
+        enable = true;
+        dockerCompat = true;
+        defaultNetwork.settings.dns_enabled = true;
+      };
+
+      # LXC/LXD
+      lxd.enable = true;
+    };
+
+    # Networking for VMs
+    networking.firewall = {
+      enable = true;
+      allowedTCPPorts = [ 22 80 443 8080 8443 3389 5900 5901 ];
+      allowedUDPPorts = [ 53 67 68 69 123 ];
+      checkReversePath = false;
+    };
+
+    # Enable nested virtualization if supported
+    boot.extraModprobeConfig = ''
+      options kvm-intel nested=1
+      options kvm-amd nested=1
+    '';
+
+    # Performance tuning
+    boot.kernel.sysctl = {
+      "vm.swappiness" = 10;
+      "vm.vfs_cache_pressure" = 50;
+      "net.core.somaxconn" = 65535;
+      "net.core.netdev_max_backlog" = 5000;
+      "net.ipv4.tcp_max_syn_backlog" = 65535;
+      "net.ipv4.ip_local_port_range" = "1024 65535";
+    };
+  };
+
+  # Development environment setup script
+  setupScript = pkgs.writeShellScriptBin "setup-vm-manager" ''
+    #!/bin/bash
+    set -euo pipefail
+
+    echo "================================================"
+    echo "   VM Manager Development Environment Setup"
+    echo "   Sponsor: Grandpa Academy"
+    echo "   Developer: MD HR"
+    echo "================================================"
     echo ""
-    echo "╔══════════════════════════════════════════════════════════════════╗"
-    echo "║                VM CREATION PROGRESS                              ║"
-    echo "╠══════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                  ║"
-    echo "║   VM Name: $vm_name"
-    echo "║                                                                  ║"
-    
-    case $step in
-        1) echo "║   ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        2) echo "║   ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        3) echo "║   ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        4) echo "║   ████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        5) echo "║   ████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        6) echo "║   ████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        7) echo "║   ████████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        8) echo "║   ████████████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        9) echo "║   ████████████████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░  ║";;
-        10) echo "║   ████████████████████████████████████████░░░░░░░░░░░░░░░░░░░░  ║";;
-        11) echo "║   ████████████████████████████████████████████░░░░░░░░░░░░░░░░  ║";;
-        12) echo "║   ████████████████████████████████████████████████░░░░░░░░░░░░  ║";;
-        13) echo "║   ████████████████████████████████████████████████████░░░░░░░░  ║";;
-        14) echo "║   ████████████████████████████████████████████████████████░░░░  ║";;
-        15) echo "║   ████████████████████████████████████████████████████████████  ║";;
-    esac
-    
-    echo "║                                                                  ║"
-    echo "║   Step $step/15: $(get_step_description $step)                      "
-    echo "║                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════╝"
-    echo ""
-}
 
-get_step_description() {
-    local step=$1
-    case $step in
-        1) echo "Validating inputs";;
-        2) echo "Creating VM directory";;
-        3) echo "Downloading OS image";;
-        4) echo "Setting up disk storage";;
-        5) echo "Creating user configuration";;
-        6) echo "Generating cloud-init data";;
-        7) echo "Creating seed image";;
-        8) echo "Configuring network";;
-        9) echo "Setting up SSH access";;
-        10) echo "Applying security settings";;
-        11) echo "Saving configuration";;
-        12) echo "Finalizing setup";;
-        13) echo "Optimizing performance";;
-        14) echo "Verifying installation";;
-        15) echo "VM ready to start";;
-    esac
-}
-
-# Function to display colored output
-print_status() {
-    local type=$1
-    local message=$2
-    
-    case $type in
-        "INFO") echo -e "🔹 \033[1;34m[INFO]\033[0m $message" ;;
-        "WARN") echo -e "⚠️  \033[1;33m[WARN]\033[0m $message" ;;
-        "ERROR") echo -e "❌ \033[1;31m[ERROR]\033[0m $message" ;;
-        "SUCCESS") echo -e "✅ \033[1;32m[SUCCESS]\033[0m $message" ;;
-        "INPUT") echo -e "🎯 \033[1;36m[INPUT]\033[0m $message" ;;
-        "VM") echo -e "🖥️  \033[1;93m[VM]\033[0m $message" ;;
-        "START") echo -e "🚀 \033[1;92m[START]\033[0m $message" ;;
-        "STOP") echo -e "🛑 \033[1;91m[STOP]\033[0m $message" ;;
-        *) echo "📌 $message" ;;
-    esac
-}
-
-# Function to display VM list
-display_vm_list() {
-    local vms=($(get_vm_list))
-    local vm_count=${#vms[@]}
-    
-    if [ $vm_count -gt 0 ]; then
-        echo ""
-        echo "╔══════════════════════════════════════════════════════════════════╗"
-        echo "║                   AVAILABLE VIRTUAL MACHINES                     ║"
-        echo "╠══════════════════════════════════════════════════════════════════╣"
-        echo "║                                                                  ║"
-        echo "║   No.  VM Name            Status      SSH Port    Memory   CPU  ║"
-        echo "║   ─────────────────────────────────────────────────────────────  ║"
-        
-        for i in "${!vms[@]}"; do
-            local vm_name="${vms[$i]}"
-            local config_file="$VM_DIR/$vm_name.conf"
-            
-            if [[ -f "$config_file" ]]; then
-                # Load basic info without sourcing the entire config
-                local ssh_port=$(grep '^SSH_PORT=' "$config_file" | cut -d'=' -f2 | tr -d '"')
-                local memory=$(grep '^MEMORY=' "$config_file" | cut -d'=' -f2 | tr -d '"')
-                local cpus=$(grep '^CPUS=' "$config_file" | cut -d'=' -f2 | tr -d '"')
-                
-                # Check if VM is running
-                local status="🟢 Running"
-                if ! pgrep -f "qemu-system-x86_64.*$vm_name" >/dev/null; then
-                    status="🔴 Stopped"
-                fi
-                
-                printf "║   %2d.  %-15s  %-10s  %-8s  %-6s  %-4s ║\n" \
-                    $((i+1)) "$vm_name" "$status" "$ssh_port" "${memory}MB" "$cpus"
-            fi
-        done
-        
-        echo "║                                                                  ║"
-        echo "╚══════════════════════════════════════════════════════════════════╝"
-        echo ""
-    else
-        echo ""
-        echo "========================================"
-        echo "    No Virtual Machines Found"
-        echo "========================================"
-        echo ""
+    # Check if running as root
+    if [[ $EUID -eq 0 ]]; then
+      echo "❌ Please do not run this script as root"
+      exit 1
     fi
-}
 
-# Function to display VM details
-display_vm_details() {
-    local vm_name=$1
-    
-    if load_vm_config "$vm_name"; then
-        echo ""
-        echo "╔══════════════════════════════════════════════════════════════════╗"
-        echo "║                   VM DETAILS: $vm_name"
-        echo "╠══════════════════════════════════════════════════════════════════╣"
-        echo "║                                                                  ║"
-        echo "║   Basic Information:                                             ║"
-        echo "║   • OS Type:      $OS_TYPE                                        "
-        echo "║   • Hostname:     $HOSTNAME                                       "
-        echo "║   • Created:      $CREATED                                        "
-        echo "║                                                                  ║"
-        echo "║   Access Details:                                                ║"
-        echo "║   • Username:     $USERNAME                                       "
-        echo "║   • Password:     ******                                         "
-        echo "║   • SSH Port:     $SSH_PORT                                       "
-        echo "║   • SSH Command:  ssh -p $SSH_PORT $USERNAME@localhost            "
-        echo "║                                                                  ║"
-        echo "║   Resource Allocation:                                           ║"
-        echo "║   • Memory:       $MEMORY MB                                      "
-        echo "║   • CPU Cores:    $CPUS                                           "
-        echo "║   • Disk Size:    $DISK_SIZE                                      "
-        echo "║                                                                  ║"
-        echo "║   Configuration:                                                 ║"
-        echo "║   • GUI Mode:     $GUI_MODE                                       "
-        echo "║   • Port Forwards: ${PORT_FORWARDS:-None}                        "
-        echo "║                                                                  ║"
-        echo "║   Files:                                                         ║"
-        echo "║   • Image:        $(basename "$IMG_FILE")                        "
-        echo "║   • Config:       $vm_name.conf                                  "
-        echo "║                                                                  ║"
-        echo "╚══════════════════════════════════════════════════════════════════╝"
-        echo ""
-    fi
-}
+    # Create necessary directories
+    echo "📁 Creating directories..."
+    mkdir -p ~/vms
+    mkdir -p ~/.config/vm-manager
+    mkdir -p ~/.local/share/vm-manager
 
-# Function to display main menu
-display_main_menu() {
-    local vms=($(get_vm_list))
-    local vm_count=${#vms[@]}
-    
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════╗"
-    echo "║                      MAIN MENU                                   ║"
-    echo "╠══════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                  ║"
-    echo "║   1. 🆕 Create New Virtual Machine                               ║"
-    
-    if [ $vm_count -gt 0 ]; then
-        echo "║   2. 🚀 Start Virtual Machine                                    ║"
-        echo "║   3. 🛑 Stop Virtual Machine                                     ║"
-        echo "║   4. 📊 View VM Information                                     ║"
-        echo "║   5. ⚙️  Edit VM Configuration                                   ║"
-        echo "║   6. 📈 Monitor VM Performance                                  ║"
-        echo "║   7. 💾 Resize VM Disk                                          ║"
-        echo "║   8. 🗑️  Delete Virtual Machine                                  ║"
-    fi
-    
-    echo "║   9. 🔄 Check System Requirements                                 ║"
-    echo "║   0. 🚪 Exit                                                        ║"
-    echo "║                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════╝"
-    echo ""
-}
+    # Set permissions
+    echo "🔐 Setting permissions..."
+    chmod 755 ~/vms
+    chmod 700 ~/.config/vm-manager
 
-# Function to display system check
-display_system_check() {
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════╗"
-    echo "║                   SYSTEM REQUIREMENTS CHECK                      ║"
-    echo "╠══════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                  ║"
-    
     # Check KVM support
-    if lsmod | grep -q kvm; then
-        echo "║   ✅ KVM Virtualization: Enabled                                ║"
+    echo "🔍 Checking KVM support..."
+    if [[ -c /dev/kvm ]]; then
+      echo "✅ KVM device found at /dev/kvm"
+      
+      # Check if user is in kvm group
+      if groups | grep -q kvm; then
+        echo "✅ User is in 'kvm' group"
+      else
+        echo "⚠️  User is NOT in 'kvm' group"
+        echo "   To add yourself: sudo usermod -aG kvm $USER"
+      fi
     else
-        echo "║   ❌ KVM Virtualization: Not enabled                            ║"
+      echo "❌ KVM device not found"
+      echo "   Please enable virtualization in BIOS/UEFI"
     fi
+
+    # Check CPU virtualization support
+    echo "🔍 Checking CPU virtualization extensions..."
+    if grep -q -E 'vmx|svm' /proc/cpuinfo; then
+      echo "✅ CPU virtualization extensions detected"
+    else
+      echo "❌ CPU virtualization extensions NOT detected"
+    fi
+
+    # Create example configuration
+    echo "📝 Creating example configuration..."
+    cat > ~/.config/vm-manager/config.env << 'EOF'
+# VM Manager Configuration
+# Sponsor: Grandpa Academy
+# Developer: MD HR
+
+# Default VM directory
+VM_BASE_DIR="$HOME/vms"
+
+# Default resources
+DEFAULT_MEMORY="2048"
+DEFAULT_CPUS="2"
+DEFAULT_DISK="20G"
+DEFAULT_SSH_PORT="2222"
+
+# Network settings
+BRIDGE_INTERFACE="virbr0"
+NETWORK_CIDR="192.168.122.0/24"
+
+# Performance settings
+QEMU_OPTS="-enable-kvm -cpu host -smp sockets=1,cores=2,threads=2"
+DISK_CACHE="writeback"
+IO_THREADS="yes"
+
+# Cloud-init settings
+CLOUD_USER="ubuntu"
+CLOUD_PASSWORD="ubuntu"
+CLOUD_SSH_KEY="$HOME/.ssh/id_rsa.pub"
+
+# Logging
+LOG_LEVEL="INFO"
+LOG_FILE="$HOME/.local/share/vm-manager/vm-manager.log"
+EOF
+
+    # Create SSH key if not exists
+    echo "🔑 Setting up SSH keys..."
+    if [[ ! -f ~/.ssh/id_rsa ]]; then
+      mkdir -p ~/.ssh
+      ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+      echo "✅ Generated new SSH key"
+    else
+      echo "✅ SSH key already exists"
+    fi
+
+    # Create helper scripts
+    echo "📜 Creating helper scripts..."
     
-    # Check disk space
-    local free_space=$(df -h "$VM_DIR" | tail -1 | awk '{print $4}')
-    echo "║   📦 Available Disk Space: $free_space                            ║"
-    
-    # Check memory
-    local total_mem=$(free -h | grep Mem | awk '{print $2}')
-    echo "║   🧠 Total Memory: $total_mem                                      ║"
-    
-    # Check CPU
-    local cpu_cores=$(nproc)
-    echo "║   ⚡ CPU Cores: $cpu_cores                                         ║"
-    
-    echo "║                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════╝"
-    echo ""
-}
+    # Quick start script
+    cat > ~/vms/quick-start.sh << 'EOF'
+#!/bin/bash
+# Quick VM starter script
+# Usage: ./quick-start.sh <vm-name>
 
-# Function to display goodbye message
-display_goodbye() {
-    echo ""
-    echo "================================================================================"
-    echo "                         THANK YOU FOR USING VM MANAGER"
-    echo "================================================================================"
-    echo ""
-    echo "    Sponsor: Grandpa Academy"
-    echo "    Developer: MD HR"
-    echo "    Version: 3.0"
-    echo ""
-    echo "================================================================================"
-    echo ""
-}
+VM_NAME="''${1:-}"
+VM_DIR="$HOME/vms"
 
-# ... [Rest of the functions remain the same as original script]
-# [Note: Keep all other functions from the original script unchanged]
-# [Only the display functions have been updated for clarity]
+if [[ -z "$VM_NAME" ]]; then
+    echo "Usage: $0 <vm-name>"
+    exit 1
+fi
 
-# Main function
-main_menu() {
-    while true; do
-        display_header
-        
-        # Show available VMs
-        display_vm_list
-        
-        # Show main menu
-        display_main_menu
-        
-        read -p "$(print_status "INPUT" "Enter your choice: ")" choice
-        
-        # Handle menu choice
-        # [Keep the same menu handling logic from original script]
-        # [Add calls to display functions where appropriate]
-        
-        case $choice in
-            1)
-                display_header
-                display_os_menu
-                # ... rest of create VM logic
-                ;;
-            0)
-                display_goodbye
-                exit 0
-                ;;
-            *)
-                # ... handle other cases
-                ;;
-        esac
-    done
-}
+CONFIG_FILE="$VM_DIR/$VM_NAME.conf"
 
-# Set trap to cleanup on exit
-trap cleanup EXIT
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "VM configuration not found: $CONFIG_FILE"
+    exit 1
+fi
 
-# Check dependencies
-check_dependencies
+# Load configuration
+source "$CONFIG_FILE"
 
-# Initialize paths
-VM_DIR="${VM_DIR:-$HOME/vms}"
-mkdir -p "$VM_DIR"
+# Start VM
+echo "Starting VM: $VM_NAME"
+echo "SSH: ssh -p $SSH_PORT $USERNAME@localhost"
+echo "Password: $PASSWORD"
 
-# Supported OS list
-declare -A OS_OPTIONS=(
-    ["Ubuntu 22.04"]="ubuntu|jammy|https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img|ubuntu22|ubuntu|ubuntu"
-    ["Ubuntu 24.04"]="ubuntu|noble|https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img|ubuntu24|ubuntu|ubuntu"
-    ["Debian 11"]="debian|bullseye|https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2|debian11|debian|debian"
-    ["Debian 12"]="debian|bookworm|https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2|debian12|debian|debian"
-    ["Fedora 40"]="fedora|40|https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images/Fedora-Cloud-Base-40-1.14.x86_64.qcow2|fedora40|fedora|fedora"
-    ["CentOS Stream 9"]="centos|stream9|https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2|centos9|centos|centos"
-    ["AlmaLinux 9"]="almalinux|9|https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2|almalinux9|alma|alma"
-    ["Rocky Linux 9"]="rockylinux|9|https://download.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2|rocky9|rocky|rocky"
-)
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m "$MEMORY" \
+  -smp "$CPUS" \
+  -cpu host \
+  -drive "file=$IMG_FILE,format=qcow2,if=virtio" \
+  -drive "file=$SEED_FILE,format=raw,if=virtio" \
+  -boot order=c \
+  -device virtio-net-pci,netdev=n0 \
+  -netdev "user,id=n0,hostfwd=tcp::$SSH_PORT-:22" \
+  -nographic
+EOF
 
-# Start the main menu
-main_menu
+    chmod +x ~/vms/quick-start.sh
+
+    # Backup script
+    cat > ~/vms/backup-vm.sh << 'EOF'
+#!/bin/bash
+# VM Backup Script
+# Usage: ./backup-vm.sh <vm-name>
+
+VM_NAME="''${1:-}"
+VM_DIR="$HOME/vms"
+BACKUP_DIR="$HOME/vm-backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+if [[ -z "$VM_NAME" ]]; then
+    echo "Usage: $0 <vm-name>"
+    exit 1
+fi
+
+mkdir -p "$BACKUP_DIR"
+
+# Stop VM if running
+if pgrep -f "qemu-system-x86_64.*$VM_NAME" >/dev/null; then
+    echo "Stopping VM: $VM_NAME"
+    pkill -f "qemu-system-x86_64.*$VM_NAME"
+    sleep 5
+fi
+
+# Backup files
+echo "Backing up VM: $VM_NAME"
+BACKUP_FILE="$BACKUP_DIR/${VM_NAME}_${DATE}.tar.gz"
+
+tar -czf "$BACKUP_FILE" \
+  -C "$VM_DIR" \
+  "$VM_NAME.conf" \
+  "$VM_NAME.img" \
+  "$VM_NAME-seed.iso" 2>/dev/null || true
+
+echo "Backup created: $BACKUP_FILE"
+echo "Size: $(du -h "$BACKUP_FILE" | cut -f1)"
+EOF
+
+    chmod +x ~/vms/backup-vm.sh
+
+    # Create README
+    cat > ~/vms/README.md << 'EOF'
+# VM Manager Development Environment
+
+## Overview
+This directory contains Virtual Machines managed by the VM Manager tool.
+
+## Directory Structure
